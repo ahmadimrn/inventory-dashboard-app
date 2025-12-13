@@ -5,15 +5,21 @@ export const createUser = async (data) => {
 
     const newUser = await prisma.user.create({
         data: {
-            name: name,
-            email: email,
-            password: password,
+            name,
+            email,
+            password,
         },
     });
+
+    return newUser;
 };
 
-export const findUser = await prisma.user.findUnique({
-    where: {
-        email: email,
-    },
-});
+export const findUser = async (email) => {
+    const existingUser = await prisma.user.findUnique({
+        where: {
+            email: email,
+        },
+    });
+
+    return existingUser;
+};
