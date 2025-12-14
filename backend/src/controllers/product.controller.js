@@ -9,7 +9,7 @@ export const getAll = async (req, res) => {
 };
 
 export const create = async (req, res) => {
-    const newProduct = await service.create(req.body);
+    const newProduct = await service.create(req);
 
     return res
         .status(200)
