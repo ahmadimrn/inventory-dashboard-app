@@ -1,33 +1,55 @@
-import { prisma } from "../config/db.config.js";
 import bcrypt from "bcrypt";
+import { prisma } from "../config/db.config.js";
 import { generateToken } from "../middleware/auth.middleware.js";
 
-export const register = async (data) => {
-    const { name, email, password } = data;
+export const register = async ({ name, email, password }) => {
+    const existing = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (existing) {
+        throw new Error("User with email already exists");
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newUser = await prisma.user.create({
+    const user = await prisma.user.create({
         data: {
             name,
-            email,
+            email: email.toLowerCase(),
             password: hashedPassword,
         },
     });
 
-    const token = await generateToken(newUser.id, name);
+    const token = await generateToken(user.id, user.name);
 
-    return { newUser, token };
+    return {
+        id: user.id,
+        name: user.name,
+        token,
+    };
 };
 
-export const findUser = async (email) => {
-    const existingUser = await prisma.user.findUnique({
-        where: {
-            email: email,
-        },
+export const login = async ({ email, password }) => {
+    const user = await prisma.user.findUnique({
+        where: { email },
     });
 
-    console.log(existingUser);
+    if (!user) {
+        throw new Error("Invalid credentials");
+    }
 
-    return existingUser;
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+        throw new Error("Invalid credentials");
+    }
+
+    const token = await generateToken(user.id, user.name);
+
+    return {
+        id: user.id,
+        name: user.name,
+        token,
+    };
 };
