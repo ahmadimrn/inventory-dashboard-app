@@ -26,14 +26,27 @@ export const authMiddleware = async (req, res, next) => {
     }
 };
 
-export const generateToken = async (id, name) => {
+export const generateAccessToken = async (id, name) => {
     const payload = {
         id,
         name,
     };
 
     const token = await jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: 3600,
+        expiresIn: "15m",
+    });
+
+    return token;
+};
+
+export const generateRefreshToken = async (id, name) => {
+    const payload = {
+        id,
+        name,
+    };
+
+    const token = await jwt.sign(payload, process.env.REFRESH_TOKEN_SECRET, {
+        expiresIn: "15d",
     });
 
     return token;
