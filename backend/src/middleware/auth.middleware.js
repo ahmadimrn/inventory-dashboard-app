@@ -62,8 +62,8 @@ export const registerValidator = [
             minLength: 8,
             minUppercase: 0,
             minLowercase: 0,
-            minNumbers: 1,
-            minSymbols: 1,
+            minNumbers: 0,
+            minSymbols: 0,
         })
         .withMessage(
             "Password must contain atleast 8 characters with atleast 1 number and 1 symbol."
