@@ -7,9 +7,12 @@ import {
     Alert,
     Link,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router";
+import { Link as RouterLink, useNavigate } from "react-router";
+import api from "../services/api/axios";
 
 const Register = () => {
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         name: "",
         email: "",
@@ -17,17 +20,29 @@ const Register = () => {
     });
 
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
 
-        // API call will go here
-        console.log("Register payload:", form);
+        if (loading) return;
+
+        setError("");
+        setLoading(true);
+
+        try {
+            await api.post("/auth/register", form);
+
+            navigate("/login");
+        } catch (err) {
+            setError(err.response?.data?.message || "Registration failed");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -47,6 +62,7 @@ const Register = () => {
                     <TextField
                         label="Full name"
                         name="name"
+                        value={form.name}
                         required
                         fullWidth
                         onChange={handleChange}
@@ -56,6 +72,7 @@ const Register = () => {
                         label="Email"
                         name="email"
                         type="email"
+                        value={form.email}
                         required
                         fullWidth
                         onChange={handleChange}
@@ -65,16 +82,20 @@ const Register = () => {
                         label="Password"
                         name="password"
                         type="password"
+                        value={form.password}
                         required
                         fullWidth
                         helperText="Minimum 8 characters"
                         onChange={handleChange}
                     />
 
-                    <br />
-
-                    <Button type="submit" variant="contained" size="large">
-                        Register
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        disabled={loading}
+                    >
+                        {loading ? "Creating account..." : "Register"}
                     </Button>
 
                     <Link
