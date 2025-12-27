@@ -7,22 +7,46 @@ import {
     Alert,
     Link,
 } from "@mui/material";
-import { Link as RouterLink } from "react-router";
+import { Link as RouterLink, useNavigate } from "react-router";
+import api from "../services/api/axios";
 
 const Login = () => {
-    const [form, setForm] = useState({ email: "", password: "" });
+    const navigate = useNavigate();
+
+    const [form, setForm] = useState({
+        email: "",
+        password: "",
+    });
+
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setError("");
 
-        // API call will go here
-        console.log("Login payload:", form);
+        if (loading) return;
+
+        setError("");
+        setLoading(true);
+
+        try {
+            const res = await api.post("/auth/login", form, {
+                withCredentials: true,
+            });
+
+            const { accessToken } = res.data;
+
+            navigate("/products");
+        } catch (err) {
+            const data = err.response?.data;
+            setError(err.response?.data?.message || "Login failed");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -43,24 +67,29 @@ const Login = () => {
                         label="Email"
                         name="email"
                         type="email"
+                        value={form.email}
+                        onChange={handleChange}
                         required
                         fullWidth
-                        onChange={handleChange}
                     />
 
                     <TextField
                         label="Password"
                         name="password"
                         type="password"
+                        value={form.password}
+                        onChange={handleChange}
                         required
                         fullWidth
-                        onChange={handleChange}
                     />
 
-                    <br />
-
-                    <Button type="submit" variant="contained" size="large">
-                        Login
+                    <Button
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        disabled={loading}
+                    >
+                        {loading ? "Signing in..." : "Login"}
                     </Button>
 
                     <Link
