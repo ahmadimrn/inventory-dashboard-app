@@ -3,10 +3,16 @@ import "dotenv/config";
 import { check, validationResult } from "express-validator";
 
 export const authMiddleware = async (req, res, next) => {
-    const token = req.header("x-auth-token");
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const token = authHeader.split(" ")[1];
 
     if (!token) {
-        return res.status(400).json({ message: "Token not found" });
+        return res.status(401).json({ message: "Token not found" });
     }
 
     try {
@@ -22,7 +28,7 @@ export const authMiddleware = async (req, res, next) => {
 
         next();
     } catch (error) {
-        return res.status(400).json({ message: "Token invalid" });
+        return res.status(401).json({ message: "Unauthorized" });
     }
 };
 
@@ -65,9 +71,7 @@ export const registerValidator = [
             minNumbers: 0,
             minSymbols: 0,
         })
-        .withMessage(
-            "Password must contain atleast 8 characters with atleast 1 number and 1 symbol."
-        ),
+        .withMessage("Password must contain atleast 8 characters."),
 
     // Validate input
 
@@ -76,7 +80,7 @@ export const registerValidator = [
 
         if (!errors.isEmpty()) {
             return res.status(400).json({
-                errors: errors.array(),
+                message: errors.array().map((err) => err.msg),
             });
         }
 
