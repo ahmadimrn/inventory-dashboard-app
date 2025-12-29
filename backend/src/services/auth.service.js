@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { prisma } from "../config/db.config.js";
+import jwt from "jsonwebtoken";
 import {
     generateAccessToken,
     generateRefreshToken,
@@ -77,14 +78,17 @@ export const login = async ({ email, password }) => {
 
 export const refresh = async (refreshToken) => {
     if (!refreshToken) {
-        throw new Error("Unauthorized");
+        throw new Error("Refresh token not found");
     }
+
+    console.log("Refresh token received:", refreshToken);
 
     let payload;
     try {
+        // Verify the raw refresh token
         payload = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-    } catch {
-        throw new Error("Forbidden");
+    } catch (err) {
+        throw new Error("Invalid refresh token");
     }
 
     const user = await prisma.user.findUnique({
@@ -95,22 +99,26 @@ export const refresh = async (refreshToken) => {
         throw new Error("Forbidden");
     }
 
-    const isValidToken = await bcrypt.compare(refreshToken, user.refreshToken);
-
-    if (!isValidToken) {
+    // Compare the raw token with hashed token stored in DB
+    const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
+    if (!isValid) {
         throw new Error("Token reuse detected");
     }
 
-    const newAccessToken = generateAccessToken(user.id, user.name);
-    const newRefreshToken = generateRefreshToken(user.id, user.name);
+    // Generate new tokens
+    const newAccessToken = await generateAccessToken(user.id, user.name);
+    const newRefreshToken = await generateRefreshToken(user.id, user.name);
     const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
 
+    // Persist new refresh token
     await prisma.user.update({
         where: { id: user.id },
         data: { refreshToken: hashedRefreshToken },
     });
 
     return {
+        id: user.id,
+        name: user.name,
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
     };
@@ -121,4 +129,6 @@ export const logout = async (userId) => {
         where: { id: userId },
         data: { refreshToken: null },
     });
+
+    return;
 };
