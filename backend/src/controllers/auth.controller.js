@@ -4,7 +4,7 @@ const refreshCookieOptions = {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
-    path: "/auth/refresh",
+    path: "/api/auth/refresh",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
@@ -34,13 +34,11 @@ export const login = async (req, res, next) => {
 
         res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
-        res.status(200).json({
+        return res.status(200).json({
             id: result.id,
             name: result.name,
             accessToken: result.accessToken,
         });
-
-        return res.status(200).json(result);
     } catch (error) {
         next(error);
     }
@@ -54,7 +52,7 @@ export const refresh = async (req, res, next) => {
 
         res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
-        res.status(200).json({
+        return res.status(200).json({
             accessToken: result.accessToken,
         });
     } catch (error) {
@@ -64,15 +62,17 @@ export const refresh = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
     try {
-        const userId = req.user.id; // from access-token auth middleware
+        const userId = req.user.id;
 
         await service.logout(userId);
 
         res.clearCookie("refreshToken", {
-            path: "/auth/refresh",
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/api/auth/refresh",
         });
 
-        res.status(200);
+        return res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
         next(error);
     }
