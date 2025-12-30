@@ -9,9 +9,11 @@ import {
 } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router";
 import api from "../services/api/axios";
+import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [form, setForm] = useState({
         email: "",
@@ -34,15 +36,9 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await api.post("/auth/login", form, {
-                withCredentials: true,
-            });
-
-            const { accessToken } = res.data;
-
+            await login(form);
             navigate("/products");
         } catch (err) {
-            const data = err.response?.data;
             setError(err.response?.data?.message || "Login failed");
         } finally {
             setLoading(false);
