@@ -9,9 +9,11 @@ import {
 } from "@mui/material";
 import { Link as RouterLink, useNavigate } from "react-router";
 import api from "../services/api/axios";
+import { useAuth } from "../context/AuthContext";
 
 const Register = () => {
     const navigate = useNavigate();
+    const { register } = useAuth();
 
     const [form, setForm] = useState({
         name: "",
@@ -35,9 +37,8 @@ const Register = () => {
         setLoading(true);
 
         try {
-            await api.post("/auth/register", form);
-
-            navigate("/login");
+            await register(form);
+            navigate("/products");
         } catch (err) {
             setError(err.response?.data?.message || "Registration failed");
         } finally {
