@@ -8,45 +8,19 @@ const Analytics = () => {
     const [summary, setSummary] = useState(null);
     const [inventoryTrend, setInventoryTrend] = useState([]);
     const [categoryData, setCategoryData] = useState([]);
+    const [topProducts, setTopProducts] = useState([]);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                // const [summaryRes, trendRes, categoryRes] = await Promise.all([
-                //     api.get("/analytics/summary"),
-                //     api.get("/analytics/inventory-value"),
-                //     api.get("/analytics/category-breakdown"),
-                // ]);
+                const res = await api.get("/analytics");
 
-                // setSummary(summaryRes.data);
-                // setInventoryTrend(trendRes.data);
-                // setCategoryData(categoryRes.data);
+                const data = res.data.data;
 
-                setSummary({
-                    totalValue: 54000,
-                    lowStock: 3,
-                    outOfStock: 1,
-                    topProducts: [
-                        { name: "Laptop", value: 18000 },
-                        { name: "Monitor", value: 12000 },
-                        { name: "Keyboard", value: 8000 },
-                        { name: "Mouse", value: 6000 },
-                    ],
-                });
-
-                setInventoryTrend([
-                    { date: "Jan", value: 42000 },
-                    { date: "Feb", value: 45000 },
-                    { date: "Mar", value: 48000 },
-                    { date: "Apr", value: 51000 },
-                    { date: "May", value: 54000 },
-                ]);
-
-                setCategoryData([
-                    { category: "Electronics", value: 32000 },
-                    { category: "Accessories", value: 14000 },
-                    { category: "Furniture", value: 8000 },
-                ]);
+                setSummary(data.summary);
+                setInventoryTrend(data.inventoryTrend);
+                setCategoryData(data.categoryData);
+                setTopProducts(data.topProducts);
             } finally {
                 setLoading(false);
             }
@@ -189,16 +163,12 @@ const Analytics = () => {
                             xAxis={[
                                 {
                                     scaleType: "band",
-                                    data: summary.topProducts.map(
-                                        (p) => p.name
-                                    ),
+                                    data: topProducts.map((p) => p.name),
                                 },
                             ]}
                             series={[
                                 {
-                                    data: summary.topProducts.map(
-                                        (p) => p.value
-                                    ),
+                                    data: topProducts.map((p) => p.value),
                                     label: "Value",
                                 },
                             ]}
