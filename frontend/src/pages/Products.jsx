@@ -1,115 +1,238 @@
-import { Box, Container } from "@mui/material";
+import { useEffect, useState } from "react";
+import {
+    Box,
+    Container,
+    Typography,
+    Paper,
+    Button,
+    Stack,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    MenuItem,
+} from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-
-const columns = [
-    { field: "id", headerName: "ID", width: 90 },
-    {
-        field: "firstName",
-        headerName: "First name",
-        width: 150,
-        editable: true,
-    },
-    {
-        field: "lastName",
-        headerName: "Last name",
-        width: 150,
-        editable: true,
-    },
-    {
-        field: "age",
-        headerName: "Age",
-        type: "number",
-        width: 110,
-        editable: true,
-    },
-    {
-        field: "fullName",
-        headerName: "Full name",
-        description: "This column has a value getter and is not sortable.",
-        sortable: false,
-        width: 160,
-        valueGetter: (value, row) =>
-            `${row.firstName || ""} ${row.lastName || ""}`,
-    },
-];
-
-const rows = [
-    { id: 1, lastName: "Snow", firstName: "Jon", age: 14 },
-    { id: 2, lastName: "Lannister", firstName: "Cersei", age: 31 },
-    { id: 3, lastName: "Lannister", firstName: "Jaime", age: 31 },
-    { id: 4, lastName: "Stark", firstName: "Arya", age: 11 },
-    { id: 5, lastName: "Targaryen", firstName: "Daenerys", age: null },
-    { id: 6, lastName: "Melisandre", firstName: null, age: 150 },
-    { id: 7, lastName: "Clifford", firstName: "Ferrara", age: 44 },
-    { id: 8, lastName: "Frances", firstName: "Rossini", age: 36 },
-    { id: 9, lastName: "Roxie", firstName: "Harvey", age: 65 },
-    { id: 11, lastName: "Snow", firstName: "Jon", age: 14 },
-    { id: 12, lastName: "Lannister", firstName: "Cersei", age: 31 },
-    { id: 13, lastName: "Lannister", firstName: "Jaime", age: 31 },
-    { id: 14, lastName: "Stark", firstName: "Arya", age: 11 },
-    { id: 15, lastName: "Targaryen", firstName: "Daenerys", age: null },
-    { id: 16, lastName: "Melisandre", firstName: null, age: 150 },
-    { id: 17, lastName: "Clifford", firstName: "Ferrara", age: 44 },
-    { id: 18, lastName: "Frances", firstName: "Rossini", age: 36 },
-    { id: 19, lastName: "Roxie", firstName: "Harvey", age: 65 },
-    { id: 1, lastName: "Snow", firstName: "Jon", age: 14 },
-    { id: 2, lastName: "Lannister", firstName: "Cersei", age: 31 },
-    { id: 3, lastName: "Lannister", firstName: "Jaime", age: 31 },
-    { id: 4, lastName: "Stark", firstName: "Arya", age: 11 },
-    { id: 5, lastName: "Targaryen", firstName: "Daenerys", age: null },
-    { id: 6, lastName: "Melisandre", firstName: null, age: 150 },
-    { id: 7, lastName: "Clifford", firstName: "Ferrara", age: 44 },
-    { id: 8, lastName: "Frances", firstName: "Rossini", age: 36 },
-    { id: 9, lastName: "Roxie", firstName: "Harvey", age: 65 },
-    { id: 11, lastName: "Snow", firstName: "Jon", age: 14 },
-    { id: 12, lastName: "Lannister", firstName: "Cersei", age: 31 },
-    { id: 13, lastName: "Lannister", firstName: "Jaime", age: 31 },
-    { id: 14, lastName: "Stark", firstName: "Arya", age: 11 },
-    { id: 15, lastName: "Targaryen", firstName: "Daenerys", age: null },
-    { id: 16, lastName: "Melisandre", firstName: null, age: 150 },
-    { id: 17, lastName: "Clifford", firstName: "Ferrara", age: 44 },
-    { id: 18, lastName: "Frances", firstName: "Rossini", age: 36 },
-    { id: 19, lastName: "Roxie", firstName: "Harvey", age: 65 },
-];
+import api from "../services/api/axios";
 
 const Products = () => {
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [open, setOpen] = useState(false);
+    const [rowSelectionModel, setRowSelectionModel] = useState([]);
+    const [form, setForm] = useState({
+        name: "",
+        price: "",
+        stock: "",
+    });
+    const [error, setError] = useState("");
+
+    const fetchProducts = async () => {
+        try {
+            const res = await api.get("/products");
+            setRows(res.data.data);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProducts();
+    }, []);
+
+    const handleChange = (e) => {
+        setForm({ ...form, [e.target.name]: e.target.value });
+    };
+
+    const handleCreate = async () => {
+        try {
+            const payload = {
+                name: form.name,
+                price: parseInt(form.price),
+                stock: parseInt(form.stock),
+                category: form.category,
+            };
+            const res = await api.post("/products", payload);
+            setRows((prev) => [...prev, res.data.data]);
+            setOpen(false);
+            setForm({ name: "", price: "", stock: "", category: "" });
+            setError("");
+        } catch (err) {
+            setError(err.response?.data?.message || "Failed to create product");
+        }
+    };
+
+    const handleCellEditCommit = async (params) => {
+        const { id, field, value } = params;
+        try {
+            await api.patch(`/products/${id}`, { [field]: value });
+            setRows((prev) =>
+                prev.map((row) =>
+                    row.id === id ? { ...row, [field]: value } : row
+                )
+            );
+        } catch (err) {
+            console.error("Failed to update product:", err);
+        }
+    };
+
+    const handleDelete = async () => {
+        try {
+            const idsToDelete = Array.from(rowSelectionModel.ids || []);
+
+            if (idsToDelete.length === 0) return;
+
+            await Promise.all(
+                idsToDelete.map((id) => api.delete(`/products/${id}`))
+            );
+
+            setRows((prev) =>
+                prev.filter((row) => !idsToDelete.includes(row.id))
+            );
+
+            setRowSelectionModel({ type: "include", ids: new Set() });
+        } catch (err) {
+            console.error("Failed to delete:", err);
+        }
+    };
+
+    const columns = [
+        {
+            field: "name",
+            headerName: "Name",
+            flex: 1,
+            editable: false,
+        },
+
+        {
+            field: "price",
+            headerName: "Price ($)",
+            type: "number",
+            flex: 1,
+            editable: false,
+        },
+        {
+            field: "stock",
+            headerName: "Stock",
+            type: "number",
+            flex: 1,
+            editable: false,
+        },
+        {
+            field: "category",
+            headerName: "Category",
+            flex: 1,
+            editable: false,
+        },
+    ];
+
     return (
-        <Container
-            sx={{
-                height: "80%",
-                width: "80%",
-                m: 3,
-                mt: 5,
-                scrollbarWidth: "thin",
-                scrollbarColor: "#555 #1a1a1a",
-            }}
-        >
-            <Box
-                sx={{
-                    scrollbarWidth: "thin",
-                    scrollbarColor: "#555 #1a1a1a",
-                }}
-            >
-                <DataGrid
-                    rows={rows}
-                    columns={columns}
-                    checkboxSelection
-                    disableRowSelectionOnClick
-                    pageSizeOptions={[5, 10, 15, 20, 25, 50, 100]}
-                    initialState={{
-                        pagination: {
-                            paginationModel: {
-                                pageSize: 10,
-                            },
-                        },
-                    }}
-                    sx={{
-                        borderRadius: 3,
-                        border: 0,
-                        p: 3,
-                    }}
-                />
-            </Box>
+        <Container sx={{ width: "90%", mt: 5 }}>
+            <Stack direction="row" justifyContent="space-between" mb={2}>
+                <Typography variant="h5" fontWeight={600}>
+                    Products
+                </Typography>
+                <Stack direction="row" spacing={2}>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleDelete}
+                    >
+                        Delete Selected
+                    </Button>
+                    <Button variant="outlined" onClick={() => setOpen(true)}>
+                        Create Product
+                    </Button>
+                </Stack>
+            </Stack>
+            <Paper sx={{ p: 3, borderRadius: 3 }}>
+                <Box sx={{ height: 520 }}>
+                    <DataGrid
+                        rows={rows}
+                        columns={columns}
+                        loading={loading}
+                        getRowId={(row) => row.id}
+                        checkboxSelection
+                        onRowSelectionModelChange={(newSelection) => {
+                            setRowSelectionModel(newSelection);
+                        }}
+                        disableRowSelectionOnClick
+                        pageSizeOptions={[10, 25, 50]}
+                        initialState={{
+                            pagination: { paginationModel: { pageSize: 10 } },
+                        }}
+                        experimentalFeatures={{ newEditingApi: true }}
+                        onCellEditCommit={handleCellEditCommit}
+                        sx={{
+                            border: 0,
+                            borderRadius: 3,
+                        }}
+                    />
+                </Box>
+            </Paper>
+
+            <Dialog open={open} onClose={() => setOpen(false)} fullWidth>
+                <DialogTitle>Create New Product</DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} mt={1}>
+                        <TextField
+                            label="Name"
+                            name="name"
+                            value={form.name}
+                            onChange={handleChange}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Price"
+                            name="price"
+                            type="number"
+                            value={form.price}
+                            onChange={handleChange}
+                            fullWidth
+                        />
+                        <TextField
+                            label="Stock"
+                            name="stock"
+                            type="number"
+                            value={form.stock}
+                            onChange={handleChange}
+                            fullWidth
+                        />
+                        <TextField
+                            select
+                            label="Category"
+                            name="category"
+                            value={form.category || " "}
+                            onChange={handleChange}
+                        >
+                            {[
+                                "Electronics",
+                                "Hardware",
+                                "Furniture",
+                                "Office Supplies",
+                                "Raw Materials",
+                            ].map((cat) => (
+                                <MenuItem key={cat} value={cat}>
+                                    {cat}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        {error && (
+                            <Typography color="error" variant="body2">
+                                {error}
+                            </Typography>
+                        )}
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button variant="contained" onClick={handleCreate}>
+                        Create
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 };
